@@ -14,8 +14,11 @@ jobs:
 
       - name: Install system dependencies
         run: |
+          sudo add-apt-repository universe -y || true
           sudo apt-get update
-          sudo apt-get install -y git make curl python3 texinfo bison flex
+          sudo apt-get install -y git make curl python2.7 python3 texinfo bison flex
+          sudo ln -sf /usr/bin/python2.7 /usr/bin/python2 || true
+          sudo ln -sf /usr/bin/python2.7 /usr/bin/python || true
 
       - name: Install NVIDIA Cg Toolkit
         run: |
