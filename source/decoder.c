@@ -23,10 +23,8 @@
 #include "decoder.h"
 #include "copy.h"
 
-/* Nivel del bitstream x10. 31 = H.264 nivel 3.1, que cubre 720p30.
- * Para 720p60 haria falta 32 o 40. Determina la memoria que reserva el
- * decodificador, asi que no conviene pasarse por gusto. */
-#define DEC_PROFILE_LEVEL   31
+/* Nivel del bitstream x10. 42 = H.264 nivel 4.2, necesario para 720p60 y 1080p60. */
+#define DEC_PROFILE_LEVEL   42
 
 #define DEC_MAX_AUS         4096
 #define DEC_PIC_BYTES       (DEC_MAX_W * DEC_MAX_H * 4)
@@ -115,7 +113,7 @@ static void *vdec_mem = NULL;
  * a proposito: asi NADA de lo que monte el reensamblado puede no caber
  * aqui. Una unidad recortada tiene forma de unidad y el decodificador la
  * intentaria. */
-#define DEC_LIVE_SLOTS   6
+#define DEC_LIVE_SLOTS   16
 #define DEC_LIVE_MAX     (512 * 1024)
 
 typedef struct {
