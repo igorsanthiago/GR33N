@@ -83,6 +83,7 @@ static u32             input_sec = 0;
 static vjBuf           vj;
 static volatile u32    au_n = 0;
 static volatile u32    au_bytes = 0;
+static u64             ultimo_idr_ms = 0;
 
 /* El mando, de camino al servidor.
  *
@@ -1028,12 +1029,15 @@ static void on_video(u8 *datos, size_t n, void *ud)
 	if (pedir && ses_pc) {
 		/* Sin IDR no se sale de un corte: se pide por las dos vias,
 		 * pero con freno -- pedir uno por cada paquete perdido es
-		 * pedirle al servidor que emita solo fotogramas clave. */
-		static u64 ultimo = 0;
+		 * pedirle al servidor que emita solo fotogramas clave.
+		 * Siguiendo la arquitectura de Moonlight (IDR_REQUEST_MIN_INTERVAL):
+		 * 500 ms de intervalo minimo (en vez de 1000 ms) acelera la
+		 * recuperacion de cortes y congelamientos en Wi-Fi al doble de
+		 * velocidad sin saturar el encoder. */
 		u64 ahora = ahora_ms();
 
-		if (ahora - ultimo > 1000) {
-			ultimo = ahora;
+		if (ahora - ultimo_idr_ms > 500) {
+			ultimo_idr_ms = ahora;
 			peer_connection_request_keyframe(ses_pc);
 			enviar_texto(SID_CONTROL, xcKeyframeRequested());
 			wlog("hueco sin recuperar: pido fotograma clave "
@@ -1304,6 +1308,7 @@ static void wrtc_thread(void *arg)
 				if (decQuiereClave()) {
 					peer_connection_request_keyframe(ses_pc);
 					enviar_texto(SID_CONTROL, xcKeyframeRequested());
+					ultimo_idr_ms = ahora_ms();
 					wlog("el descodificador se ha reabierto: "
 					     "pedido fotograma clave");
 				}
@@ -1474,6 +1479,7 @@ int wrtcSesionCrear(void)
 	input_sec = 0;
 	au_n = 0;
 	au_bytes = 0;
+	ultimo_idr_ms = 0;
 	vjReset(&vj);
 	pad_t0 = 0;
 	pad_ultimo_envio = 0;
