@@ -3124,17 +3124,17 @@ int uiStreamKbps(void)
 	int base_kbps;
 
 	switch (set_stream_res) {
-	case 0: base_kbps = is30 ? 3000 : 5000; break;
-	case 2: base_kbps = is30 ? 10000 : 15000; break;
-	default: base_kbps = is30 ? 6000 : 10000; break;
+	case 0: base_kbps = is30 ? 2500 : 4000; break;
+	case 2: base_kbps = is30 ? 8000 : 12000; break;
+	default: base_kbps = is30 ? 4500 : 6500; break;
 	}
 
 	switch (set_stream_bitrate) {
-	case 0:  /* Economico (Wi-Fi 2.4 GHz): ~30% menos de ancho de banda */
-		return (base_kbps * 7) / 10;
-	case 2:  /* Alto (Cable Ethernet): ~30% mas de ancho de banda */
+	case 0:  /* Economico (Wi-Fi 2.4 GHz): menor tasa para cero saturacion */
+		return (base_kbps * 3) / 4;
+	case 2:  /* Alto (Cable Ethernet): maxima nitidez */
 		return (base_kbps * 13) / 10;
-	default: /* Estandar (Recomendado) */
+	default: /* Estandar (Recomendado): equilibrio optimo para 60 FPS */
 		return base_kbps;
 	}
 }

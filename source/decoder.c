@@ -725,6 +725,13 @@ static void dec_thread(void *arg)
 
 		if (!state_ok) { usleep(1000); continue; }
 
+		while (audone_events > 0) {
+			audone_events--;
+			if (inflight > 0) inflight--;
+			live_libera();
+			t_last_progress = now_us();
+		}
+
 		/* En vivo, si todavia no ha llegado nada de la red no hay nada
 		 * que enviar. Se cosecha igual --puede haber imagenes listas de
 		 * lo anterior-- y se duerme poco: una unidad cada 16 ms y este
@@ -733,13 +740,6 @@ static void dec_thread(void *arg)
 			if (pic_ready) drain_pictures();
 			usleep(500);
 			continue;
-		}
-
-		while (audone_events > 0) {
-			audone_events--;
-			if (inflight > 0) inflight--;
-			live_libera();
-			t_last_progress = now_us();
 		}
 
 		/* 1. Cosechar. Siempre, no solo cuando el callback avisa: una
