@@ -66,7 +66,7 @@
  * Cada vez que se entra en H264_DEBUG se prueba el siguiente de la lista y
  * se dice en el log. Tres entradas y hay tabla, sin recompilar ni cambiar
  * un numero a mano entre pruebas. */
-static const u32 spu_ladder[] = { 1, 2, 4 };
+static const u32 spu_ladder[] = { 4, 4, 4 };
 #define SPU_LADDER_N  ((int)(sizeof(spu_ladder)/sizeof(spu_ladder[0])))
 
 #define DEC_THREAD_PRIO     1001

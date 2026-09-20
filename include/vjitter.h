@@ -48,7 +48,7 @@
  * predictiva entera y congelaba la imagen hasta el siguiente IDR. El
  * retraso solo se paga cuando el fotograma YA esta incompleto; los sanos
  * salen en el acto. */
-#define VJ_ESPERA_MS   200
+#define VJ_ESPERA_MS   380
 
 #define VJ_MAX_FRAMES   16      /* fotogramas a la vez */
 #define VJ_MAX_PKTS    512      /* deposito comun de paquetes */
