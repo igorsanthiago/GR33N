@@ -6,17 +6,25 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/ps3dev/ps3dev:latest
+  build_pkg:
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install build tools if missing
+      - name: Install system dependencies
         run: |
-          apt-get update && apt-get install -y git make curl
+          sudo apt-get update
+          sudo apt-get install -y git make curl python3 texinfo bison flex
+
+      - name: Download PSL1GHT Precompiled Toolchain
+        run: |
+          curl -sL https://github.com/bucanero/ps3toolchain/releases/download/ubuntu-latest-fad3b5fb/ps3dev-ubuntu-latest-2020-08-31.tar.gz | tar xvz -C ./
+          echo "PS3DEV=${GITHUB_WORKSPACE}/ps3dev" >> $GITHUB_ENV
+          echo "PSL1GHT=${GITHUB_WORKSPACE}/ps3dev" >> $GITHUB_ENV
+          echo "${GITHUB_WORKSPACE}/ps3dev/bin" >> $GITHUB_PATH
+          echo "${GITHUB_WORKSPACE}/ps3dev/ppu/bin" >> $GITHUB_PATH
+          echo "${GITHUB_WORKSPACE}/ps3dev/spu/bin" >> $GITHUB_PATH
 
       - name: Build dependencies
         run: |
@@ -33,7 +41,7 @@ jobs:
         run: |
           make pkg
 
-      - name: Upload Artifact
+      - name: Upload PKG Artifact
         uses: actions/upload-artifact@v4
         with:
           name: gr33n-wifi-fix-pkg
