@@ -25,6 +25,8 @@ jobs:
           echo "${GITHUB_WORKSPACE}/ps3dev/bin" >> $GITHUB_PATH
           echo "${GITHUB_WORKSPACE}/ps3dev/ppu/bin" >> $GITHUB_PATH
           echo "${GITHUB_WORKSPACE}/ps3dev/spu/bin" >> $GITHUB_PATH
+          # Fix typo in PSL1GHT sys/atomic.h (newv -> new)
+          sed -i 's/newv/new/g' ${GITHUB_WORKSPACE}/ps3dev/ppu/include/sys/atomic.h
 
       - name: Install pthread-emb library
         run: |
