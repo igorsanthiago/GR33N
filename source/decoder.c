@@ -51,7 +51,7 @@
 #define DEC_FREE_RUN        1
 #define DEC_FRAME_US        33333       /* 30 fps, si DEC_FREE_RUN es 0 */
 
-#define DEC_PIC_TIMEOUT_US  2000000ull  /* dos segundos sin imagen = error */
+#define DEC_PIC_TIMEOUT_US  10000000ull /* diez segundos sin imagen = error */
 
 #define VDEC_PPU_PRIO       1000
 #define VDEC_PPU_STACK      (256 * 1024)
@@ -164,6 +164,7 @@ static u64 out_seq = 0;
 
 static volatile int pic_ready = 0;   /* lo pone el callback de cellVdec */
 static volatile int seq_error = 0;
+static volatile u32 audone_events = 0;
 
 /* Marcas de tiempo de envio, en orden. El clip va sin frames B
  * (-bf 0 al codificarlo), asi que el orden de salida es el de entrada y
@@ -232,7 +233,7 @@ static volatile int stop_req = 0;
 /* Tres y se rinde. Si cellVdec se atasca tres veces seguidas no es un
  * hipo, es que algo va mal de verdad, y reabrir en bucle solo cambiaria
  * una imagen congelada por un parpadeo eterno. */
-#define DEC_REINTENTOS 3
+#define DEC_REINTENTOS 10
 
 /* Y la cuenta SE OLVIDA si el descodificador ha aguantado un buen rato.
  *
@@ -376,6 +377,8 @@ static u32 dec_callback(u32 h, u32 msgtype, u32 msgdata, u32 arg)
 		seq_error = 1;
 		break;
 	case VDEC_CALLBACK_AUDONE:
+		audone_events++;
+		break;
 	case VDEC_CALLBACK_SEQDONE:
 	default:
 		break;
@@ -459,11 +462,6 @@ static int consume_picture(void)
 	 * quedan corridas una posicion. */
 	if (pic->status == VDEC_PICTURE_SKIPPED) {
 		LOCK(); slots[sl].busy = 0; UNLOCK();
-		if (inflight) {
-			sub_tail = (sub_tail + 1) % DEC_INFLIGHT;
-			inflight--;
-			live_libera();
-		}
 		return 1;
 	}
 
@@ -504,11 +502,9 @@ static int consume_picture(void)
 	now = now_us();
 
 	t_submit = 0;
-	if (inflight) {
+	if (sub_head != sub_tail) {
 		t_submit = submit_t[sub_tail];
 		sub_tail = (sub_tail + 1) % DEC_INFLIGHT;
-		live_libera();
-		inflight--;
 	}
 
 	LOCK();
@@ -605,6 +601,7 @@ static void do_start(void)
 		live_w = live_r = live_f = 0;
 		live_q = live_v = 0;
 		live_drops = 0;
+		audone_events = 0;
 		au_stream = NULL;
 		au_stream_size = 0;
 		dlog("0/4 EN VIVO, %u ranuras de %u KB - con %u SPU%s",
@@ -707,6 +704,7 @@ static void dec_thread(void *arg)
 			atascos = 0;
 			t_ultimo_atasco = 0;
 			quiere_clave = 0;
+			audone_events = 0;
 			continue;
 		}
 
@@ -737,6 +735,13 @@ static void dec_thread(void *arg)
 			continue;
 		}
 
+		while (audone_events > 0) {
+			audone_events--;
+			if (inflight > 0) inflight--;
+			live_libera();
+			t_last_progress = now_us();
+		}
+
 		/* 1. Cosechar. Siempre, no solo cuando el callback avisa: una
 		 *    notificacion perdida con la tuberia llena seria un bloqueo
 		 *    permanente, y drenar en vacio cuesta una llamada. */
@@ -753,7 +758,12 @@ static void dec_thread(void *arg)
 
 		/* 2. Si la tuberia esta llena, no hay nada que enviar. */
 		if (inflight >= inflight_max) {
-			if (now_us() - t_last_progress > DEC_PIC_TIMEOUT_US) {
+			if (now_us() - t_last_progress > 500000ull &&
+			    now_us() - t_last_progress <= DEC_PIC_TIMEOUT_US) {
+				inflight = 0;
+				live_libera();
+				t_last_progress = now_us();
+			} else if (now_us() - t_last_progress > DEC_PIC_TIMEOUT_US) {
 				u64 ahora = now_us();
 
 				if (t_ultimo_atasco &&
