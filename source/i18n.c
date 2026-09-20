@@ -111,6 +111,11 @@ static const struct {
 	{ "30 FPS (Estable Wi-Fi)", "30 FPS (Estável Wi-Fi)" },
 	{ "60 FPS (Original)", "60 FPS (Original)" },
 
+	/* Perfiles de Bitrate */
+	{ "Economico (Wi-Fi Estable)", "Econômico (Wi-Fi Estável)" },
+	{ "Estandar (Recomendado)", "Padrão (Recomendado)" },
+	{ "Alto (Cable / Max Calidad)", "Alto (Cabo / Máx Qualidade)" },
+
 	/* Posiciones de HUD */
 	{ "Arriba a la izquierda", "Superior Esquerdo" },
 	{ "Arriba a la derecha", "Superior Direito" },
@@ -153,6 +158,10 @@ static const struct {
 	{ "Fotogramas por segundo (FPS)", "Taxa de Quadros (FPS)" },
 	{ "Tasa de cuadros por segundo del stream. 30 FPS reduce el trafico UDP a la mitad y alivia el decodificador, garantizando fluidez total sin tirones en Wi-Fi. 60 FPS ofrece maxima suavidad. Se aplica a la proxima partida.",
 	  "Taxa de quadros do stream. 30 FPS reduz o tráfego UDP pela metade e alivia o decodificador Cell VDEC, garantindo estabilidade no Wi-Fi. 60 FPS oferece máxima suavidade. Aplica-se à próxima partida." },
+
+	{ "Perfil de tasa de bits (Bitrate)", "Perfil de Taxa de Bits (Bitrate)" },
+	{ "Ajusta el ancho de banda solicitado a xCloud. Economico reduce la tasa en un 30% para evitar saturacion y bufferbloat en Wi-Fi 2.4 GHz; Estandar es el valor optimo equilibrado; Alto aprovecha al maximo una conexion por cable Ethernet. Se aplica a la proxima partida.",
+	  "Ajusta a taxa de bits (bitrate) solicitada ao xCloud. Econômico reduz o consumo em 30% para evitar saturação e bufferbloat no Wi-Fi 2.4 GHz; Padrão é o equilíbrio ideal; Alto maximiza a nitidez em conexões cabeadas. Aplica-se à próxima partida." },
 
 	{ "Mostrar juegos no disponibles", "Exibir Jogos Indisponíveis" },
 	{ "Por defecto la biblioteca solo ensena lo que puedes jugar: todo lo que veas, arranca. Con esto puesto salen tambien los que no entran en tu suscripcion, con un candado. Va bien para ojear el catalogo entero, pero hay muchos mas de los que puedes jugar.",

@@ -433,14 +433,14 @@ void vjRecibe(vjBuf *v, const u8 *rtp, size_t len, u64 ahora_ms,
 			 * memoria en silencio seria congelar la imagen sin decir
 			 * por que. */
 			v->st.sin_sitio++;
-			if (v->n_frames > 0) {
+			while (idx < 0 && v->n_frames > 0) {
 				v->ultimo_ts = v->frames[0].ts;
 				v->hay_ultimo = 1;
 				quita_frame(v, 0);
 				v->esperando_clave = 1;
 				if (pedir_clave) *pedir_clave = 1;
+				idx = pool_coge(v);
 			}
-			idx = pool_coge(v);
 			if (idx < 0) return;
 			f = busca_o_crea(v, ts, ahora_ms);
 			if (f == NULL) { pool_suelta_lista(v, idx); return; }
