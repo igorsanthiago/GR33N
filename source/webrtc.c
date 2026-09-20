@@ -104,6 +104,8 @@ static s32          eje_gatillo(s32 presion, int pulsado);
 static u64          pad_t0 = 0;      /* cuando empezo el stream */
 static u64          pad_ultimo_envio = 0;
 static u32          pad_enviados = 0;
+static xcPad        pad_enviado_ant;
+static int          pad_enviado_hay = 0;
 
 /* --------------------------------------------------------------------- */
 /* libpeer SE ARRANCA UNA VEZ Y NO SE PARA HASTA SALIR                    */
@@ -1215,13 +1217,9 @@ static void enviar_mando(void)
 	xcPad x;
 	u8 bin[XC_GAMEPAD_LEN];
 	u64 ahora = ahora_ms();
-	int dz;
+	int dz, cambio;
 
 	if (!arranque_hecho || ses_pc == NULL) return;
-
-	if (pad_t0 == 0) pad_t0 = ahora;
-	if (ahora - pad_ultimo_envio < 16) return;
-	pad_ultimo_envio = ahora;
 
 	if (pad_mtx_ok) sysMutexLock(pad_mtx, 0);
 	p = pad_ultimo;
@@ -1242,6 +1240,24 @@ static void enviar_mando(void)
 
 	x.lt = eje_gatillo(p.lt, (p.held & GR33N_BTN_L2) != 0);
 	x.rt = eje_gatillo(p.rt, (p.held & GR33N_BTN_R2) != 0);
+
+	cambio = (!pad_enviado_hay || memcmp(&x, &pad_enviado_ant, sizeof(x)) != 0);
+
+	if (pad_t0 == 0) pad_t0 = ahora;
+
+	if (cambio) {
+		/* Envio inmediato al cambiar cualquier boton, gatillo o direccion:
+		 * minimo 4 ms de freno para no saturar SCTP, eliminando hasta
+		 * 12-16 ms de input lag. */
+		if (ahora - pad_ultimo_envio < 4) return;
+	} else {
+		/* En reposo, envio continuo a 60 Hz (~16 ms) para mantener la secuencia */
+		if (ahora - pad_ultimo_envio < 16) return;
+	}
+
+	pad_ultimo_envio = ahora;
+	pad_enviado_ant = x;
+	pad_enviado_hay = 1;
 
 	if (xcInputGamepad(bin, sizeof(bin), ++input_sec,
 	                   (double)(ahora - pad_t0), &x) == XC_GAMEPAD_LEN) {
@@ -1484,6 +1500,7 @@ int wrtcSesionCrear(void)
 	pad_t0 = 0;
 	pad_ultimo_envio = 0;
 	pad_enviados = 0;
+	pad_enviado_hay = 0;
 	memset(&pad_ultimo, 0, sizeof(pad_ultimo));
 
 	PC_LOCK();
