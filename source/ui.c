@@ -774,19 +774,35 @@ static const char *ping_status(void)
 /* 1 si el mando esta haciendo la combinacion elegida ahora mismo. */
 static int combo_hecho(const gr33nPad *pad)
 {
+	static int hold_count = 0;
 	int i = (set_exit_combo >= 0 && set_exit_combo < COMBOS_N)
 	        ? set_exit_combo : 0;
 	u32 mantener = combo_btn[i].mantener;
 	u32 pulsar   = combo_btn[i].pulsar ? combo_btn[i].pulsar : uiBtnBack();
+	u32 combo_mask = mantener | pulsar;
+	u32 sel_start  = GR33N_BTN_SELECT | GR33N_BTN_START;
 
-	/* Sin modificador no hay combinacion. Esto no deberia pasar nunca --
-	 * las cuatro lo tienen-- pero si alguna vez pasara, lo de arriba
-	 * seria "(held & 0) == 0", que es SIEMPRE cierto: saldria del juego
-	 * con un boton suelto. Un fallo asi no se ve leyendo la tabla. */
-	if (mantener == 0) return 0;
+	/* Flanco directo: mantener modificador y pulsar el boton de salida */
+	if (mantener && (pad->held & mantener) == mantener && (pad->pressed & pulsar)) {
+		hold_count = 0;
+		linkLog("[ui] atajo de salida activado (flanco)");
+		return 1;
+	}
 
-	return (pad->held & mantener) == mantener &&
-	       (pad->pressed & pulsar) != 0;
+	/* Mantener presionados ambos botones (~300ms, 18 frames a 60fps) */
+	if ((combo_mask && (pad->held & combo_mask) == combo_mask) ||
+	    ((pad->held & sel_start) == sel_start)) {
+		hold_count++;
+		if (hold_count >= 18) {
+			hold_count = 0;
+			linkLog("[ui] atajo de salida activado (mantenido)");
+			return 1;
+		}
+	} else {
+		hold_count = 0;
+	}
+
+	return 0;
 }
 
 static const uiSetting settings[] = {
@@ -1693,7 +1709,13 @@ static void clamp_settings(void)
 
 void uiSetLive(int on)
 {
-	if (!on && live_on) live_exit = 0;   /* al salir, sin arrastres */
+	if (on && !live_on) {
+		stream_entered = frame_counter;
+	}
+	if (!on && live_on) {
+		live_exit = 0;   /* al salir, sin arrastres */
+		in_ficha = 0;    /* volver directo a la cuadricula */
+	}
 	live_on = on ? 1 : 0;
 }
 
@@ -3015,10 +3037,10 @@ void uiDraw(gr33nSurface *s)
 
 void uiDrawStreamHint(gr33nSurface *s)
 {
-	char msg[48];
+	char msg[64];
 	int tw, bw;
 
-	if (mode != UI_STREAM) return;
+	if (!live_on && mode != UI_STREAM) return;
 	if (frame_counter - stream_entered > HINT_FRAMES) return;
 
 	/* Lo que pone en pantalla sale de la MISMA tabla que decide si se
@@ -3029,10 +3051,10 @@ void uiDrawStreamHint(gr33nSurface *s)
 		        ? set_exit_combo : 0;
 
 		if (combo_btn[i].pulsar == 0)
-			snprintf(msg, sizeof(msg), "SELECT + %s para volver",
+			snprintf(msg, sizeof(msg), "SELECT + %s / SELECT + START",
 			         back_glyph());
 		else
-			snprintf(msg, sizeof(msg), TR("%s para volver", "%s to go back"),
+			snprintf(msg, sizeof(msg), "%s / SELECT + START",
 			         combo_name[i]);
 	}
 
