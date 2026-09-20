@@ -19,7 +19,7 @@ jobs:
 
       - name: Install NVIDIA Cg Toolkit
         run: |
-          curl -sL "https://developer.download.nvidia.com/cg/Cg_3.1/Cg-3.1_April2012_x86_64.tgz" | sudo tar -C / -xvz usr/bin usr/include usr/lib64
+          curl -sL "https://developer.download.nvidia.com/cg/Cg_3.1/Cg-3.1_April2012_x86_64.tgz" | sudo tar -C / -xvz
           echo "/usr/lib64" | sudo tee /etc/ld.so.conf.d/cg.conf
           sudo ldconfig
           echo "LD_LIBRARY_PATH=/usr/lib64:${LD_LIBRARY_PATH}" >> $GITHUB_ENV
