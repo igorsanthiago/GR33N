@@ -83,7 +83,6 @@ static u32             input_sec = 0;
 static vjBuf           vj;
 static volatile u32    au_n = 0;
 static volatile u32    au_bytes = 0;
-static u64             ultimo_idr_ms = 0;
 
 /* El mando, de camino al servidor.
  *
@@ -104,8 +103,6 @@ static s32          eje_gatillo(s32 presion, int pulsado);
 static u64          pad_t0 = 0;      /* cuando empezo el stream */
 static u64          pad_ultimo_envio = 0;
 static u32          pad_enviados = 0;
-static xcPad        pad_enviado_ant;
-static int          pad_enviado_hay = 0;
 
 /* --------------------------------------------------------------------- */
 /* libpeer SE ARRANCA UNA VEZ Y NO SE PARA HASTA SALIR                    */
@@ -1031,15 +1028,12 @@ static void on_video(u8 *datos, size_t n, void *ud)
 	if (pedir && ses_pc) {
 		/* Sin IDR no se sale de un corte: se pide por las dos vias,
 		 * pero con freno -- pedir uno por cada paquete perdido es
-		 * pedirle al servidor que emita solo fotogramas clave.
-		 * Siguiendo la arquitectura de Moonlight (IDR_REQUEST_MIN_INTERVAL):
-		 * 500 ms de intervalo minimo (en vez de 1000 ms) acelera la
-		 * recuperacion de cortes y congelamientos en Wi-Fi al doble de
-		 * velocidad sin saturar el encoder. */
+		 * pedirle al servidor que emita solo fotogramas clave. */
+		static u64 ultimo = 0;
 		u64 ahora = ahora_ms();
 
-		if (ahora - ultimo_idr_ms > 500) {
-			ultimo_idr_ms = ahora;
+		if (ahora - ultimo > 1000) {
+			ultimo = ahora;
 			peer_connection_request_keyframe(ses_pc);
 			enviar_texto(SID_CONTROL, xcKeyframeRequested());
 			wlog("hueco sin recuperar: pido fotograma clave "
@@ -1217,9 +1211,13 @@ static void enviar_mando(void)
 	xcPad x;
 	u8 bin[XC_GAMEPAD_LEN];
 	u64 ahora = ahora_ms();
-	int dz, cambio;
+	int dz;
 
 	if (!arranque_hecho || ses_pc == NULL) return;
+
+	if (pad_t0 == 0) pad_t0 = ahora;
+	if (ahora - pad_ultimo_envio < 16) return;
+	pad_ultimo_envio = ahora;
 
 	if (pad_mtx_ok) sysMutexLock(pad_mtx, 0);
 	p = pad_ultimo;
@@ -1240,24 +1238,6 @@ static void enviar_mando(void)
 
 	x.lt = eje_gatillo(p.lt, (p.held & GR33N_BTN_L2) != 0);
 	x.rt = eje_gatillo(p.rt, (p.held & GR33N_BTN_R2) != 0);
-
-	cambio = (!pad_enviado_hay || memcmp(&x, &pad_enviado_ant, sizeof(x)) != 0);
-
-	if (pad_t0 == 0) pad_t0 = ahora;
-
-	if (cambio) {
-		/* Envio inmediato al cambiar cualquier boton, gatillo o direccion:
-		 * minimo 4 ms de freno para no saturar SCTP, eliminando hasta
-		 * 12-16 ms de input lag. */
-		if (ahora - pad_ultimo_envio < 4) return;
-	} else {
-		/* En reposo, envio continuo a 60 Hz (~16 ms) para mantener la secuencia */
-		if (ahora - pad_ultimo_envio < 16) return;
-	}
-
-	pad_ultimo_envio = ahora;
-	pad_enviado_ant = x;
-	pad_enviado_hay = 1;
 
 	if (xcInputGamepad(bin, sizeof(bin), ++input_sec,
 	                   (double)(ahora - pad_t0), &x) == XC_GAMEPAD_LEN) {
@@ -1324,7 +1304,6 @@ static void wrtc_thread(void *arg)
 				if (decQuiereClave()) {
 					peer_connection_request_keyframe(ses_pc);
 					enviar_texto(SID_CONTROL, xcKeyframeRequested());
-					ultimo_idr_ms = ahora_ms();
 					wlog("el descodificador se ha reabierto: "
 					     "pedido fotograma clave");
 				}
@@ -1495,12 +1474,10 @@ int wrtcSesionCrear(void)
 	input_sec = 0;
 	au_n = 0;
 	au_bytes = 0;
-	ultimo_idr_ms = 0;
 	vjReset(&vj);
 	pad_t0 = 0;
 	pad_ultimo_envio = 0;
 	pad_enviados = 0;
-	pad_enviado_hay = 0;
 	memset(&pad_ultimo, 0, sizeof(pad_ultimo));
 
 	PC_LOCK();

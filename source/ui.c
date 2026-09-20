@@ -340,14 +340,6 @@ static const char *fps_opts[FPS_OPTS_N] = {
 };
 static int set_stream_fps = 1;  /* 0=30fps, 1=60fps */
 
-#define BITRATE_OPTS_N 3
-static const char *bitrate_opts[BITRATE_OPTS_N] = {
-	"Economico (Wi-Fi Estable)",
-	"Estandar (Recomendado)",
-	"Alto (Cable / Max Calidad)"
-};
-static int set_stream_bitrate = 1;  /* 0=economico, 1=estandar, 2=alto */
-
 /* Un juego en marcha NO es el menu con una imagen encima.
  *
  * La primera version pintaba el video sobre el menu y dejaba a uiUpdate
@@ -949,20 +941,6 @@ static const uiSetting settings[] = {
 		"provides original smoothness. Applies to your next game session.",
 		SET_CHOICE, &set_stream_fps, 0, FPS_OPTS_N - 1, 1,
 		fps_opts, FPS_OPTS_N, NULL, 0
-	},
-	{
-		"Perfil de tasa de bits (Bitrate)",
-		"Bitrate profile (Bandwidth)",
-		"Ajusta el ancho de banda solicitado a xCloud. Economico reduce "
-		"la tasa en un 30% para evitar saturacion y bufferbloat en Wi-Fi 2.4 GHz; "
-		"Estandar es el valor optimo equilibrado; Alto aprovecha al maximo una "
-		"conexion por cable Ethernet. Se aplica a la proxima partida.",
-		"Adjusts requested streaming bitrate from xCloud. Eco reduces "
-		"bandwidth by ~30% to prevent Wi-Fi 2.4 GHz bufferbloat; "
-		"Standard is optimal; High maximizes clarity over wired Ethernet. "
-		"Applies to your next game session.",
-		SET_CHOICE, &set_stream_bitrate, 0, BITRATE_OPTS_N - 1, 1,
-		bitrate_opts, BITRATE_OPTS_N, NULL, 0
 	},
 	{
 		"Mostrar juegos no disponibles",
@@ -1682,8 +1660,7 @@ static const struct { const char *key; int *value; } persisted[] = {
 	{ "salir_combo", &set_exit_combo },
 	{ "salir_app",   &set_quit_app   },
 	{ "stream_res",  &set_stream_res },
-	{ "stream_fps",  &set_stream_fps },
-	{ "stream_bitrate", &set_stream_bitrate }
+	{ "stream_fps",  &set_stream_fps }
 };
 #define PERSISTED_N ((int)(sizeof(persisted)/sizeof(persisted[0])))
 
@@ -3121,21 +3098,10 @@ int uiStreamHeight(void)
 int uiStreamKbps(void)
 {
 	int is30 = (set_stream_fps == 0);
-	int base_kbps;
-
 	switch (set_stream_res) {
-	case 0: base_kbps = is30 ? 2500 : 4000; break;
-	case 2: base_kbps = is30 ? 8000 : 12000; break;
-	default: base_kbps = is30 ? 4500 : 6500; break;
-	}
-
-	switch (set_stream_bitrate) {
-	case 0:  /* Economico (Wi-Fi 2.4 GHz): menor tasa para cero saturacion */
-		return (base_kbps * 3) / 4;
-	case 2:  /* Alto (Cable Ethernet): maxima nitidez */
-		return (base_kbps * 13) / 10;
-	default: /* Estandar (Recomendado): equilibrio optimo para 60 FPS */
-		return base_kbps;
+	case 0: return is30 ? 3000 : 5000;
+	case 2: return is30 ? 10000 : 15000;
+	default: return is30 ? 6000 : 10000;
 	}
 }
 
