@@ -2329,19 +2329,22 @@ static void draw_grid(gr33nSurface *s)
 		 * biblioteca" en Favoritos, cuando el catalogo lleva rato
 		 * cargado, es sencillamente falso. */
 		if (tab == TAB_FAVS && ci->state == CAT_OK)
-			msg = "Todavia no has marcado ningun favorito. Triangulo "
-			      "sobre un juego.";
+			msg = TR("Todavia no has marcado ningun favorito. Triangulo "
+			         "sobre un juego.",
+			         "No favourites marked yet. Press Triangle on a game.");
 		else if (genre_sel > 0 && ci->state == CAT_OK)
-			msg = "Ningun juego con ese filtro. Cuadrado para cambiarlo.";
+			msg = TR("Ningun juego con ese filtro. Cuadrado para cambiarlo.",
+			         "No games with this filter. Press Square to change it.");
 		else if (ci->state == CAT_FAILED)
 			msg = ci->err;
 		else if (ci->state == CAT_OK)
 			msg = TR("Ningun juego disponible con tu suscripcion.",
 			         "No games available with your subscription.");
 		else if (authHaveToken())
-			msg = "Cargando biblioteca...";
+			msg = TR("Cargando biblioteca...", "Loading library...");
 		else
-			msg = "Inicia sesion en Ajustes para ver tus juegos.";
+			msg = TR("Inicia sesion en Ajustes para ver tus juegos.",
+			         "Sign in under Settings to see your games.");
 
 		/* Sin nada que enseñar no hay nada cerca. Si no se dice, la cache
 		 * sigue protegiendo la pagina de la ultima vez. */
@@ -2717,7 +2720,8 @@ static void draw_library(gr33nSurface *s)
 		         TR("Sin juegos", "No games"));
 		textWrap(s, LIST_X + 24, CONTENT_Y + 60, 2, COL_TEXT_DIM,
 		         LIST_W - 48, 26, 8,
-		         "No hay ningun juego disponible para lanzar.");
+		         TR("No hay ningun juego disponible para lanzar.",
+		            "No games available to launch."));
 	}
 
 	/* Se cuenta por filas visibles, no por indice absoluto. Aparte de
@@ -2747,7 +2751,7 @@ static void draw_library(gr33nSurface *s)
 	gfxFillRect(s, DET_X, CONTENT_Y, DET_W, CONTENT_H, COL_PANEL);
 
 	if (catalog_n == 0) {
-		const char *msg = "Nada que mostrar";
+		const char *msg = TR("Nada que mostrar", "Nothing to display");
 		textDraw(s, DET_X + (DET_W - textWidth(3, msg)) / 2,
 		         CONTENT_Y + CONTENT_H / 2 - 10, 3, COL_TEXT_DIM, msg);
 		return;
@@ -3054,10 +3058,14 @@ void uiDrawStreamHint(gr33nSurface *s)
 		        ? set_exit_combo : 0;
 
 		if (combo_btn[i].pulsar == 0)
-			snprintf(msg, sizeof(msg), "SELECT + %s / SELECT + START",
+			snprintf(msg, sizeof(msg),
+			         TR("SELECT + %s / SELECT + START para volver",
+			            "SELECT + %s / SELECT + START to go back"),
 			         back_glyph());
 		else
-			snprintf(msg, sizeof(msg), "%s / SELECT + START",
+			snprintf(msg, sizeof(msg),
+			         TR("%s / SELECT + START para volver",
+			            "%s / SELECT + START to go back"),
 			         combo_name[i]);
 	}
 
