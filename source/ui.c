@@ -325,6 +325,21 @@ static int set_exit_combo = 0;  /* como se sale de un stream */
  * no puedan pisarse entre si es lo minimo. */
 static int set_quit_app   = 0;
 
+#define RES_OPTS_N 3
+static const char *res_opts[RES_OPTS_N] = {
+	"480p (Fluido / Wi-Fi)",
+	"720p (Recomendado)",
+	"1080p (Alta definicion)"
+};
+static int set_stream_res = 1;  /* 0=480p, 1=720p, 2=1080p */
+
+#define FPS_OPTS_N 2
+static const char *fps_opts[FPS_OPTS_N] = {
+	"30 FPS (Estable Wi-Fi)",
+	"60 FPS (Original)"
+};
+static int set_stream_fps = 1;  /* 0=30fps, 1=60fps */
+
 /* Un juego en marcha NO es el menu con una imagen encima.
  *
  * La primera version pintaba el video sobre el menu y dejaba a uiUpdate
@@ -881,6 +896,32 @@ static const uiSetting settings[] = {
 		"measurements per region and the best one wins, because network "
 		"noise only ever adds.",
 		SET_ACTION, &set_ping, 0, 0, 0, NULL, 0, ping_status, 0
+	},
+	{
+		"Resolucion de streaming",
+		"Stream resolution",
+		"Resolucion del video que manda xCloud. 480p consume mucho menos "
+		"ancho de banda y es ideal para conexiones Wi-Fi con interferencias; "
+		"720p es el estandar optimo en PS3; 1080p ofrece la maxima nitidez. "
+		"Se aplica a la proxima partida.",
+		"Streaming resolution requested from xCloud. 480p uses much less "
+		"bandwidth and is ideal for Wi-Fi; 720p is the sweet spot on PS3; "
+		"1080p provides maximum clarity. Applies to your next game session.",
+		SET_CHOICE, &set_stream_res, 0, RES_OPTS_N - 1, 1,
+		res_opts, RES_OPTS_N, NULL, 0
+	},
+	{
+		"Fotogramas por segundo (FPS)",
+		"Stream framerate (FPS)",
+		"Tasa de cuadros por segundo del stream. 30 FPS reduce el trafico "
+		"UDP a la mitad y alivia el decodificador, garantizando fluidez "
+		"total sin tirones en Wi-Fi. 60 FPS ofrece maxima suavidad. "
+		"Se aplica a la proxima partida.",
+		"Stream frame rate. 30 FPS halves UDP network packet rate and "
+		"decoder load, preventing drops and stutter on Wi-Fi. 60 FPS "
+		"provides original smoothness. Applies to your next game session.",
+		SET_CHOICE, &set_stream_fps, 0, FPS_OPTS_N - 1, 1,
+		fps_opts, FPS_OPTS_N, NULL, 0
 	},
 	{
 		"Mostrar juegos no disponibles",
@@ -1598,7 +1639,9 @@ static const struct { const char *key; int *value; } persisted[] = {
 	{ "hud_scale", &set_hud_scale },
 	{ "hud_pos",   &set_hud_pos   },
 	{ "salir_combo", &set_exit_combo },
-	{ "salir_app",   &set_quit_app   }
+	{ "salir_app",   &set_quit_app   },
+	{ "stream_res",  &set_stream_res },
+	{ "stream_fps",  &set_stream_fps }
 };
 #define PERSISTED_N ((int)(sizeof(persisted)/sizeof(persisted[0])))
 
@@ -2999,4 +3042,46 @@ void uiDrawStreamHint(gr33nSurface *s)
 	gfxFillRect(s, (W - bw) / 2, H - 72, bw, 40, COL_BAR);
 	gfxRect(s, (W - bw) / 2, H - 72, bw, 40, 2, COL_GREEN_DIM);
 	textDraw(s, (W - tw) / 2, H - 72 + 13, 2, COL_TEXT, msg);
+}
+
+int uiStreamWidth(void)
+{
+	switch (set_stream_res) {
+	case 0: return 854;
+	case 2: return 1920;
+	default: return 1280;
+	}
+}
+
+int uiStreamHeight(void)
+{
+	switch (set_stream_res) {
+	case 0: return 480;
+	case 2: return 1080;
+	default: return 720;
+	}
+}
+
+int uiStreamKbps(void)
+{
+	int is30 = (set_stream_fps == 0);
+	switch (set_stream_res) {
+	case 0: return is30 ? 3000 : 5000;
+	case 2: return is30 ? 10000 : 15000;
+	default: return is30 ? 6000 : 10000;
+	}
+}
+
+int uiStreamFps(void)
+{
+	return (set_stream_fps == 0) ? 30 : 60;
+}
+
+const char *uiStreamResAlias(void)
+{
+	switch (set_stream_res) {
+	case 0: return "480";
+	case 2: return "1080";
+	default: return "720";
+	}
 }
