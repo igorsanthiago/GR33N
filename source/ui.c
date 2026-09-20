@@ -595,7 +595,10 @@ static void aplicar_idioma(void)
 	 *
 	 * set_juego_cod vacio = nunca lo ha tocado. */
 	if (set_juego_cod[0] == '\0') {
-		int i = xclocPorCodigo(set_idioma == IDIOMA_EN ? "en-US" : "es-ES");
+		const char *def_loc = "es-ES";
+		if (set_idioma == IDIOMA_EN) def_loc = "en-US";
+		else if (set_idioma == IDIOMA_PT) def_loc = "pt-BR";
+		int i = xclocPorCodigo(def_loc);
 		if (i >= 0) set_juego_loc = i;
 	}
 
@@ -2882,7 +2885,7 @@ static void draw_settings(gr33nSurface *s)
 			 * fotogramas de por medio. Leer st->options[idx] con el
 			 * indice de la lista anterior es leer fuera. */
 			if (idx < 0 || idx >= opts_n(st)) idx = 0;
-			opt = st->options[idx] ? st->options[idx] : "?";
+			opt = st->options[idx] ? tr(st->options[idx], NULL) : "?";
 			w = textWidth(2, opt);
 
 			/* La LATENCIA es del selector de servidor y de nadie mas.
